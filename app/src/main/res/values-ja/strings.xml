@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">TextGrepView</string>
+
+    <string name="action_search">検索</string>
+
+    <string name="title_setting">設定</string>
+    <string name="title_about">このアプリケーションについて</string>
+
+    <string name="open">ファイルを開く</string>
+    <string name="character_code">文字コード</string>
+    <string name="font">フォント</string>
+    <string name="show_line_number">行番号を表示する</string>
+    <string name="wrap_line">長い行を折り返す</string>
+
+</resources>
