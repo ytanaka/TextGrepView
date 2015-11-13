@@ -1,7 +1,6 @@
 package textgrep.ytanaka.github.io.textgrep;
 
 import android.app.Activity;
-import android.app.ActivityManager;
 import android.content.Context;
 import android.os.Bundle;
 import android.util.Log;
@@ -9,6 +8,7 @@ import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.InputMethodManager;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
 import android.widget.SearchView;
@@ -26,18 +26,26 @@ public class ViewActivity extends Activity {
     private TextView mTextView;
     private ListView mListView;
     private MyAdapter mAdapter;
-
+    private Config mConfig;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_view);
 
+        mConfig = Config.read(this);
         mTextView = (TextView) findViewById(R.id.textView);
         mListView = (ListView) findViewById(R.id.listView);
         mAdapter = new MyAdapter();
         mListView.setAdapter(mAdapter);
-        mTextData = new TextData(new TextData.StatusChangeNotifier() {
+        mListView.setFastScrollEnabled(true);
+        mListView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+            @Override
+            public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+                hideKeyboard();
+            }
+        });
+        mTextData = new TextData(mConfig.getCharset(), mConfig.ignoreCase, new TextData.StatusChangeNotifier() {
             @Override
             public void changed() {
                 runOnUiThread(new Runnable() {
@@ -48,32 +56,18 @@ public class ViewActivity extends Activity {
                 });
             }
         });
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-
         try {
             mTextData.load(this, getIntent().getData());
         } catch (FileNotFoundException e) {
             Log.e(TAG, e.toString(), e);
-            Util.showOKCancelMsgBox(this, "ファイルが見つかりません", new Runnable() {
+            Util.showOKCancelMsgBox(this, getResources().getString(R.string.file_not_found), new Runnable() {
                 @Override
                 public void run() {
                     finish();
                 }
             }, false);
+            finish();
         }
-        ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
-        Log.d(TAG, "m = " + am.getMemoryClass());
-        Log.d(TAG, "lm = " + am.getLargeMemoryClass());
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        mTextData.dispose();
     }
 
     private void refresh() {
@@ -82,10 +76,18 @@ public class ViewActivity extends Activity {
 
         if (search == null) {
             mAdapter.setData(all);
-            mTextView.setText(all.size() + "行 " + (mTextData.isProgress() ? "読み込み中・・・" : "読み込み完了"));
+            if (mTextData.isProgress()) {
+                mTextView.setText(getResources().getString(R.string.status_xx_line_reading, all.size()));
+            } else {
+                mTextView.setText(getResources().getString(R.string.status_xx_line_read, all.size()));
+            }
         } else {
             mAdapter.setData(search);
-            mTextView.setText(search.size() + "行 " + (mTextData.isProgress() ? "検索中・・・" : "検索完了"));
+            if (mTextData.isProgress()) {
+                mTextView.setText(getResources().getString(R.string.status_xx_line_seaching, search.size()));
+            } else {
+                mTextView.setText(getResources().getString(R.string.status_xx_line_seached, search.size()));
+            }
         }
         mAdapter.notifyDataSetChanged();
     }
@@ -97,21 +99,25 @@ public class ViewActivity extends Activity {
         sv.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
-                InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
-                imm.hideSoftInputFromWindow(sv.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+                hideKeyboard();
                 return true;
             }
 
             @Override
             public boolean onQueryTextChange(String newText) {
-                newText = newText.trim();
-                android.util.Log.e("", "xxxxxxxxxxx「" + newText + "」");
-                mTextData.search(newText);
-                android.util.Log.e("", "xxxxxxxxxxx");
+                mTextData.search(newText.trim());
                 return true;
             }
         });
         return true;
+    }
+
+    private void hideKeyboard() {
+        View view = this.getCurrentFocus();
+        if (view != null) {
+            InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(view.getWindowToken(), InputMethodManager.HIDE_NOT_ALWAYS);
+        }
     }
 
     private class MyAdapter extends ArrayAdapter<String> {
@@ -141,11 +147,21 @@ public class ViewActivity extends Activity {
         public View getView(int position, View convertView, ViewGroup parent) {
             if (convertView == null) {
                 convertView = getLayoutInflater().inflate(R.layout.list_item, mListView, false);
+                convertView.setMinimumWidth(parent.getMeasuredWidth());
+                ViewHolder vh = new ViewHolder();
+                vh.tv = (TextView) convertView.findViewById(R.id.textView);
+                vh.tv.setTypeface(mConfig.getFont());
+                vh.tv.setMaxLines(mConfig.wrapLine ? 999 : 1);
+                convertView.setTag(vh);
             }
-            TextView tv = (TextView) convertView.findViewById(R.id.textView);
+            ViewHolder vh = (ViewHolder) convertView.getTag();
             String text = getItem(position);
-            tv.setText(text);
+            if (mConfig.showLineNumber) text = "" + (position + 1) + ": " + text;
+            vh.tv.setText(text);
             return convertView;
         }
+    }
+    private static class ViewHolder {
+        TextView tv;
     }
 }

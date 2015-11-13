@@ -32,20 +32,27 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="MONOSPACE"
-        android:id="@+id/button"
+        android:id="@+id/button_font"
         tools:ignore="HardcodedText" />
 
     <CheckBox
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/show_line_number"
-        android:id="@+id/checkBox"
+        android:id="@+id/checkBox_showLineNumber"
         android:checked="false" />
 
     <CheckBox
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="@string/wrap_line"
-        android:id="@+id/checkBox2"
+        android:id="@+id/checkBox_wrapLine"
+        android:checked="false" />
+
+    <CheckBox
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/ignore_case"
+        android:id="@+id/checkBox_ignoreCase"
         android:checked="false" />
 </LinearLayout>

@@ -13,5 +13,11 @@
     <string name="font">Font</string>
     <string name="show_line_number">Show line number</string>
     <string name="wrap_line">wrap line</string>
+    <string name="ignore_case">Ignore case in text search</string>
+    <string name="file_not_found">File not found</string>
 
+    <string name="status_xx_line_read">%1$d lines read</string>
+    <string name="status_xx_line_reading">%1$d lines reading.....</string>
+    <string name="status_xx_line_seached">%1$d lines searched</string>
+    <string name="status_xx_line_seaching">%1$d lines searching.....</string>
 </resources>

@@ -11,6 +11,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -22,17 +23,21 @@ public class TextData {
     volatile private List<String> searchLines = null;
     volatile private boolean isProgress = false;
 
-    private StatusChangeNotifier callback;
+    final private Charset charset;
+    final private boolean ignoreCase;
+    final private StatusChangeNotifier callback;
     public interface StatusChangeNotifier {
-        public void changed();
+        void changed();
     }
 
-    public TextData(StatusChangeNotifier callback) {
+    public TextData(Charset charset, boolean ignoreCase, StatusChangeNotifier callback) {
+        this.charset = charset;
+        this.ignoreCase = ignoreCase;
         this.callback = callback;
     }
 
-    static final long INTERVAL = 300;
-    long lastNotifyTime = 0;
+    final static private long INTERVAL = 300;
+    private long lastNotifyTime = 0;
     private void notifyToClient(boolean force) {
         if (!force && lastNotifyTime + INTERVAL > System.currentTimeMillis()) return;
         callback.changed();
@@ -46,11 +51,6 @@ public class TextData {
     }
     public boolean isProgress() {
         return isProgress;
-    }
-
-    synchronized public void dispose() {
-        allLines = mkList();
-        searchLines = null;
     }
 
     synchronized public void load(Context context, Uri uri) throws FileNotFoundException {
@@ -79,7 +79,7 @@ public class TextData {
             return null;
         }
         private void read(InputStream istream) throws IOException {
-            BufferedReader in = new BufferedReader(new InputStreamReader(istream));
+            BufferedReader in = new BufferedReader(new InputStreamReader(istream, charset));
             List<String> buff = new ArrayList<>();
             try {
                 while (allLines == result) {
@@ -99,6 +99,10 @@ public class TextData {
             notifyToClient(true);
             Log.v(TAG, "load finished");
         }
+        private void moveAll(List<String> to, List<String> from) {
+            to.addAll(from);
+            from.clear();
+        }
     }
     private class SearchTask extends AsyncTask<Void, Void, Void> {
         String param;
@@ -107,6 +111,7 @@ public class TextData {
         SearchTask(String param) {
             isProgress = true;
             this.param = param;
+            if (ignoreCase) this.param = param.toLowerCase();
             from = allLines;
             searchLines = mkList();
             result = searchLines;
@@ -122,7 +127,8 @@ public class TextData {
             for (int i = 0; i < from.size(); i++) {
                 if (result != searchLines) break;
                 String s = from.get(i);
-                if (s.contains(param)) result.add(s);
+                if (ignoreCase) s = s.toLowerCase();
+                if (s.toLowerCase().contains(param)) result.add(from.get(i));
                 notifyToClient(false);
             }
             if (result == searchLines) isProgress = false;
@@ -134,9 +140,5 @@ public class TextData {
 
     private List<String> mkList() {
         return Collections.synchronizedList(new ArrayList<String>());
-    }
-    private void moveAll(List<String> to, List<String> from) {
-        to.addAll(from);
-        from.clear();
     }
 }
